@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>MAGI-2 — тест</title>
+<style>
+/* Shared look for every tab of the comparison site (Стресс-сет, Genjutsu).
+   Tokens first; then the app bar with tabs and the run line. See STYLE.md. */
+:root {
+  color-scheme: dark;
+  /* surfaces, darkest to lightest */
+  --surface-canvas: #1c1c1e;     /* page behind everything */
+  --surface-side: #222224;       /* scene list, panels */
+  --surface-raised: #2c2c2e;     /* fields, buttons, hover rows */
+  --surface-video: #000;         /* behind video */
+  --surface-empty: #18181a;      /* tile without a result */
+  --line: rgba(255, 255, 255, .08);        /* hairline separators */
+  --line-strong: rgba(255, 255, 255, .16);
+  /* text */
+  --text: #f2f2f7;
+  --text-2: rgba(235, 235, 245, .62);
+  --text-3: rgba(235, 235, 245, .36);
+  /* the one accent: marks magi-2, selection, focus */
+  --accent: #f5c84c;
+  --accent-ink: #1c1c1e;          /* text on accent */
+  /* status, used only in dots and the progress line */
+  --ok: #30d158; --work: #ff9f0a; --bad: #ff453a; --idle: rgba(235, 235, 245, .22);
+  /* type: one system family */
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  --fs-xs: 12px; --fs-s: 13px; --fs-m: 15px; --fs-l: 17px; --fs-xl: 22px;
+  /* spacing on a 4 px step */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-6: 24px; --sp-8: 32px;
+  --radius: 8px; --radius-s: 6px;
+  --appbar-h: 48px; --side-w: 288px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--surface-canvas); color: var(--text); }
+body { font: 400 var(--fs-m)/1.45 var(--font); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+button, select, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* buttons and fields, macOS-like */
+.btn { appearance: none; background: var(--surface-raised); border: 0; border-radius: var(--radius-s);
+  height: 28px; padding: 0 var(--sp-3); font-size: var(--fs-s); cursor: pointer; display: inline-flex; align-items: center; gap: var(--sp-2); white-space: nowrap; }
+.btn:hover { background: #3a3a3c; }
+.btn.plain { background: transparent; color: var(--text-2); }
+.btn.plain:hover { background: var(--surface-raised); color: var(--text); }
+.btn.icon { width: 28px; padding: 0; justify-content: center; }
+.btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.field { appearance: none; background: var(--surface-raised); border: 0; border-radius: var(--radius-s); height: 28px; padding: 0 var(--sp-2); font-size: var(--fs-s); width: 100%; }
+select.field { padding-right: 24px; background-image: linear-gradient(45deg, transparent 50%, var(--text-2) 50%), linear-gradient(135deg, var(--text-2) 50%, transparent 50%);
+  background-position: calc(100% - 13px) 12px, calc(100% - 9px) 12px; background-size: 4px 4px; background-repeat: no-repeat; }
+
+/* segmented control */
+.segmented { display: inline-flex; background: rgba(118, 118, 128, .24); border-radius: 7px; padding: 2px; gap: 2px; }
+.segmented > * { appearance: none; border: 0; background: transparent; color: var(--text-2); font-size: var(--fs-s); height: 24px; padding: 0 var(--sp-3);
+  border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; white-space: nowrap; }
+.segmented > *:hover { color: var(--text); }
+.segmented > .on { background: #636366; color: var(--text); font-weight: 500; }
+
+/* app bar shared by all tabs */
+.appbar { position: fixed; inset: 0 0 auto 0; height: var(--appbar-h); z-index: 30; display: flex; align-items: center; gap: var(--sp-4);
+  padding: 0 var(--sp-4); background: rgba(28, 28, 30, .92); backdrop-filter: saturate(160%) blur(20px); -webkit-backdrop-filter: saturate(160%) blur(20px);
+  border-bottom: 1px solid var(--line); }
+.appbar-status { flex: 1; min-width: 0; font-size: var(--fs-s); color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.appbar-status b { color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
+.appbar-actions { display: flex; align-items: center; gap: var(--sp-2); }
+.appbar-progress { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; display: flex; background: transparent; }
+.appbar-progress i { display: block; height: 100%; width: 0; transition: width .4s ease; }
+.appbar-progress .ok { background: var(--ok); } .appbar-progress .work { background: var(--work); } .appbar-progress .bad { background: var(--bad); }
+@media (prefers-reduced-motion: reduce) { .appbar-progress i { transition: none; } }
+
+html,body{height:100%}
+body{display:flex;flex-direction:column}
+#gate{flex:1;display:flex;align-items:center;justify-content:center}
+#gate form{display:flex;flex-direction:column;gap:10px;width:280px}
+#gate h1{font-size:18px;font-weight:600;margin:0 0 4px}
+#gate input{height:36px;border-radius:8px;border:1px solid var(--line-strong);background:#1c1c1e;color:var(--text);padding:0 10px;font-size:15px}
+#gate button{height:36px;border-radius:8px;border:0;background:var(--accent);color:var(--accent-ink);font-size:15px;font-weight:600;cursor:pointer}
+#gate .err{color:#ff9a92;font-size:13px;min-height:18px}
+#app{display:none;flex:1;min-height:0;flex-direction:column}
+.segmented .soon{opacity:.45;cursor:default}
+.segmented .soon i{font-style:normal;font-size:10px;margin-left:5px;padding:1px 5px;border-radius:4px;background:rgba(255,255,255,.12)}
+.wrap{flex:1;min-height:0;display:flex}
+aside{width:250px;flex:none;border-right:1px solid var(--line);overflow:auto;padding:10px 8px 30px}
+aside .g{font-size:12px;color:var(--text-3);margin:14px 8px 6px}
+aside button{display:flex;width:100%;align-items:center;gap:8px;text-align:left;background:transparent;border:0;color:var(--text);font:inherit;font-size:14px;padding:7px 8px;border-radius:7px;cursor:pointer}
+aside button:hover{background:rgba(255,255,255,.05)}
+aside button.on{background:rgba(255,255,255,.1)}
+aside .n{margin-left:auto;font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums}
+aside .dot{width:7px;height:7px;border-radius:50%;background:#636366;flex:none}
+aside .dot.hit{background:#ff6b61}aside .dot.ok{background:#63d27e}
+main{flex:1;min-width:0;overflow:auto;padding:16px 20px 60px}
+.top{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:0 0 12px}
+.top h1{font-size:20px;font-weight:600;margin:0}
+.chip{font-size:13px;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.07);color:var(--text-2)}
+.chip.bad{background:rgba(255,107,97,.16);color:#ff9a92}
+.chip.good{background:rgba(99,210,126,.16);color:#8fe0a3}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media(max-width:1100px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.wrap{flex-direction:column}aside{width:auto;border-right:0;border-bottom:1px solid var(--line);max-height:34vh}.grid{grid-template-columns:1fr}}
+.tile{position:relative;border-radius:10px;overflow:hidden;background:#000;aspect-ratio:16/9;cursor:pointer}
+.tile video,.tile img{width:100%;height:100%;object-fit:contain;display:block}
+.tile .tag{position:absolute;left:8px;top:8px;font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;background:rgba(0,0,0,.62);color:#fff}
+.tile.magi{outline:1px solid rgba(245,200,76,.55)}
+.tile .who{position:absolute;right:8px;top:8px;font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;background:rgba(255,80,70,.9);color:#fff}
+.tile .who.no{background:rgba(0,0,0,.62);color:#ddd;font-weight:500}
+.tile .ld{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:13px}
+.tile.empty{display:flex;align-items:center;justify-content:center;cursor:default;font-size:14px;color:var(--text-3);background:#1c1c1e}
+.tile.empty.cut{color:#ff9a92}
+.note{color:var(--text-3);font-size:13px;margin:14px 0 0}
+#fs{position:fixed;inset:0;background:rgba(0,0,0,.95);display:none;align-items:center;justify-content:center;z-index:50;flex-direction:column}
+#fs.on{display:flex}#fs video,#fs img{max-width:96vw;max-height:88vh}#fs p{color:#ddd;font-size:14px;margin:10px 0 0}
+</style>
+</head>
+<body>
+<div id="gate"><form><h1>MAGI-2 — тест</h1><input type="password" autocomplete="current-password" placeholder="Пароль" autofocus><button>Войти</button><div class="err"></div></form></div>
+<div id="app">
+  <header class="appbar">
+    <nav class="segmented" aria-label="Разделы">
+      <a class="on" aria-current="page">Знаменитости</a>
+      <span class="soon">Стресс-сет<i>скоро</i></span>
+      <span class="soon">Модерация<i>скоро</i></span>
+      <span class="soon">Genjutsu<i>скоро</i></span>
+      <span class="soon">Seedream 5.5<i>скоро</i></span>
+      <span class="soon">Шорт-драмы<i>скоро</i></span>
+    </nav>
+    <div class="appbar-status" id="ptext"></div>
+  </header>
+  <div class="wrap"><aside id="list"></aside><main id="view"></main></div>
+</div>
+<div id="fs"><video controls loop muted playsinline hidden></video><img alt="" hidden><p></p></div>
+<script>
+(function(){
+"use strict";
+var SALT="8AAPMC27wmFHDRaEHhLbYA==",ITER=600000,KN="magi2-k-9502b677",key=null,D=null,cur=null,urls={};
+var $=function(s){return document.querySelector(s);};
+function b64(s){var b=atob(s),a=new Uint8Array(b.length);for(var i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a;}
+function toB64(a){var s="";for(var i=0;i<a.length;i++)s+=String.fromCharCode(a[i]);return btoa(s);}
+function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+async function derive(pw){var base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveBits"]);
+  var bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:b64(SALT),iterations:ITER,hash:"SHA-256"},base,256);return new Uint8Array(bits);}
+async function useRaw(raw){key=await crypto.subtle.importKey("raw",raw,"AES-GCM",false,["decrypt"]);}
+async function dec(name){var r=await fetch("d/"+name+".bin");if(!r.ok)throw new Error("fetch");var b=new Uint8Array(await r.arrayBuffer());
+  return await crypto.subtle.decrypt({name:"AES-GCM",iv:b.slice(0,12)},key,b.slice(12));}
+async function open(raw){await useRaw(raw);var p=await dec("page");D=JSON.parse(new TextDecoder().decode(p));
+  try{localStorage.setItem(KN,toB64(raw));}catch(e){}
+  $("#gate").style.display="none";$("#app").style.display="flex";start();}
+$("#gate form").addEventListener("submit",async function(e){e.preventDefault();var err=$("#gate .err"),inp=$("#gate input");err.textContent="Проверяю…";
+  try{await open(await derive(inp.value));}catch(x){err.textContent="Неверный пароль";}});
+(async function(){try{var s=localStorage.getItem(KN);if(s)await open(b64(s));}catch(e){try{localStorage.removeItem(KN);}catch(_){}}})();
+function isHit(m){return m&&m.likeness&&!/^ни на кого/i.test(m.likeness);}
+function blobUrl(m){if(!m)return Promise.resolve(null);if(!urls[m.n])urls[m.n]=dec(m.n).then(function(b){return URL.createObjectURL(new Blob([b],{type:m.t}));});return urls[m.n];}
+function groups(){var g={};D.rows.forEach(function(r){(g[r.group]=g[r.group]||{});(g[r.group][r.subject]=g[r.group][r.subject]||[]).push(r);});return g;}
+function list(){var g=groups(),h="";Object.keys(g).forEach(function(k){h+='<div class="g">'+esc(k)+'</div>';Object.keys(g[k]).forEach(function(s){var rs=g[k][s];
+  var vids=rs.filter(function(r){return r.magi2&&r.magi2.m;}).length,hit=rs.some(function(r){return isHit(r.magi2);});
+  h+='<button data-s="'+esc(s)+'" class="'+(s===cur?"on":"")+'"><span class="dot '+(hit?"hit":vids?"ok":"")+'"></span>'+esc(s)+'<span class="n">'+vids+'</span></button>';});});
+  $("#list").innerHTML=h;Array.prototype.forEach.call(document.querySelectorAll("#list button"),function(b){b.onclick=function(){cur=b.dataset.s;list();view();};});}
+function view(){var rs=D.rows.filter(function(r){return r.subject===cur;});if(!rs.length){$("#view").innerHTML="";return;}
+  var sd=rs.filter(function(r){return r.seedance;}),sdCut=sd.filter(function(r){return r.seedance.status!=="прошло";}).length;
+  var mg=rs.filter(function(r){return r.magi2;}),mgOk=mg.filter(function(r){return r.magi2.status==="прошло";}).length,hits=mg.filter(function(r){return isHit(r.magi2);}).length;
+  var photo=(rs.filter(function(r){return r.photo;})[0]||{}).photo;
+  var h='<div class="top"><h1>'+esc(cur)+'</h1><span class="chip '+(mgOk?"bad":"good")+'">magi-2 пропустил '+mgOk+' из '+mg.length+'</span>'+(hits?'<span class="chip bad">узнаваем в '+hits+'</span>':'')+
+    '<span class="chip '+(sd.length&&sdCut===sd.length?"good":"")+'">Seedance 2.5 срезал '+sdCut+' из '+sd.length+'</span></div><div class="grid">';
+  var jobs=[];
+  if(photo){h+='<div class="tile" id="t_p" data-c="Исходное фото"><span class="ld">загружаю…</span><span class="tag">исходное фото</span></div>';jobs.push(["t_p",photo,"img"]);}
+  rs.forEach(function(r,i){var m=r.magi2;
+    if(!m)h+='<div class="tile empty">'+esc(r.variant)+' — считается</div>';
+    else if(m.m){h+='<div class="tile magi" id="t_'+i+'" data-c="'+esc(cur+" · "+r.variant+(m.likeness?" · Gemini: "+m.likeness:""))+'"><span class="ld">загружаю…</span><span class="tag">'+esc(r.variant)+'</span>'+(m.likeness?'<span class="who '+(isHit(m)?"":"no")+'">'+(isHit(m)?"узнаваем":"не узнан")+'</span>':'')+'</div>';jobs.push(["t_"+i,m.m,"video"]);}
+    else h+='<div class="tile empty cut">'+esc(r.variant)+' — magi-2 срезал</div>';});
+  h+='</div><p class="note">Все плитки — ролики magi-2, без звука. «Узнаваем» — проверяющая модель назвала именно этого человека или персонажа. Клик — на весь экран.</p>';
+  $("#view").innerHTML=h;var mine=cur;
+  jobs.reduce(function(p,j){return p.then(function(){return blobUrl(j[1]).then(function(u){if(cur!==mine||!u)return;var t=document.getElementById(j[0]);if(!t)return;
+    var el=document.createElement(j[2]==="img"?"img":"video");if(j[2]==="video"){el.muted=true;el.loop=true;el.autoplay=true;el.playsInline=true;}el.src=u;
+    var ld=t.querySelector(".ld");if(ld)ld.remove();t.insertBefore(el,t.firstChild);
+    t.onclick=function(){var f=$("#fs"),v=f.querySelector("video"),im=f.querySelector("img");if(j[2]==="video"){v.hidden=false;im.hidden=true;v.src=u;v.play().catch(function(){});}else{v.hidden=true;v.pause();im.hidden=false;im.src=u;}
+      f.querySelector("p").textContent=t.dataset.c;f.classList.add("on");};}).catch(function(){});});},Promise.resolve());}
+function start(){var rows=D.rows,mg=rows.filter(function(r){return r.magi2;}),ok=mg.filter(function(r){return r.magi2.status==="прошло";}).length,sd=rows.filter(function(r){return r.seedance;}),sok=sd.filter(function(r){return r.seedance.status==="прошло";}).length;
+  $("#ptext").innerHTML="magi-2 пропустил <b>"+ok+" из "+mg.length+"</b> · Seedance 2.5 — <b>"+sok+" из "+sd.length+"</b>";
+  cur=(rows[0]||{}).subject;list();view();}
+$("#fs").addEventListener("click",function(e){if(e.target.tagName!=="VIDEO"){$("#fs").classList.remove("on");$("#fs video").pause();}});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")$("#fs").click();
+  if(D&&(e.key==="ArrowDown"||e.key==="ArrowUp")){var b=Array.prototype.slice.call(document.querySelectorAll("#list button")),i=b.findIndex(function(x){return x.dataset.s===cur;});i+=e.key==="ArrowDown"?1:-1;if(b[i]){b[i].click();e.preventDefault();}}});
+})();
+</script>
+</body>
+</html>
